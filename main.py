@@ -73,7 +73,7 @@ def evaluate_model(dataloader, model, loss_fn):
 	num_total = 0.0
 	for (X,y) in dataloader:
 		output = model(X)
-		loss += loss_fn(output,y)
+		loss += loss_fn(output,y).item()
 		for i in range(len(output)):
 			num_total += 1
 			if (output[i].argmax() == y[i]):
@@ -136,15 +136,26 @@ def train(train_dataloader, test_dataloader, model, loss_fn, optimizer, epochs, 
 		for (X,y) in train_dataloader:
 			output = model(X)
 			loss = loss_fn(output,y)
+			epoch_loss += loss.item()
+			epoch_num_correct += (y == output.argmax(dim=1)).sum().item() 
+			epoch_num_total += y.shape[0]
 			optimizer.zero_grad()
 			loss.backward()
 			optimizer.step()
+		approx_tr_loss.append(epoch_loss)
+		approx_tr_acc.append(epoch_num_correct/epoch_num_total)
+
 		if (eval_train_stats):
 			model.eval()
-			evaluate_model(train_dataloader,model,loss_fn)
+			my_loss,my_acc = evaluate_model(train_dataloader,model,loss_fn)
+			train_loss.append(my_loss)
+			train_acc.append(my_acc)
 		if (eval_test_stats):
 			model.eval()
-			evaluate_model(test_dataloader,model,loss_fn)
+			my_loss,my_acc = evaluate_model(test_dataloader,model,loss_fn)
+			test_loss.append(my_loss)
+			test_acc.append(my_acc)
+	return (train_loss,train_acc,test_loss,test_acc,approx_tr_loss,approx_tr_acc)
 
 
 
