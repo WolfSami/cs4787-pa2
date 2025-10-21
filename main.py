@@ -86,7 +86,15 @@ def evaluate_model(dataloader, model, loss_fn):
 #
 # returns   a new model of type torch.nn.Sequential
 def make_fully_connected_model_part1_1():
-	# TODO students should implement this
+	model = torch.nn.Sequential(
+		torch.nn.Flatten(),
+		torch.nn.Linear(out_features=1024),
+		torch.nn.ReLU(),
+		torch.nn.Linear(out_features=256),
+		torch.nn.ReLU(),
+		torch.nn.Linear(out_features=10)
+	)
+	return model
 
 # build a fully connected two-hidden-layer neural network with Batch Norm, as in Part 1.4
 # use the default initialization for the parameters provided in PyTorch
