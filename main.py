@@ -88,11 +88,11 @@ def evaluate_model(dataloader, model, loss_fn):
 def make_fully_connected_model_part1_1():
 	model = torch.nn.Sequential(
 		torch.nn.Flatten(),
-		torch.nn.Linear(out_features=1024),
+		torch.nn.Linear(in_features=784,out_features=1024),
 		torch.nn.ReLU(),
-		torch.nn.Linear(out_features=256),
+		torch.nn.Linear(in_features=1024,out_features=256),
 		torch.nn.ReLU(),
-		torch.nn.Linear(out_features=10)
+		torch.nn.Linear(in_features=256,out_features=10)
 	)
 	return model
 
@@ -172,10 +172,10 @@ Run for 10 epochs.
 Your code should save the statistics that are output by train in addition to the total wall-clock time used for training. 
 You should expect to get about 98% test accuracy here. """
 def run_1_1(train_dataset,test_dataset):
-	loss_fn = torch.nn.CrossEntropyLoss
+	loss_fn = torch.nn.CrossEntropyLoss()
 	model = make_fully_connected_model_part1_1()
-	optimizer = torch.optim.SGD(model.parameters(),lr=0.1,batch_size=100)
-	train_dataloader,test_dataloader = construct_dataloaders(train_dataset,test_dataset)
+	optimizer = torch.optim.SGD(model.parameters(),lr=0.1)
+	train_dataloader,test_dataloader = construct_dataloaders(train_dataset,test_dataset,100)
 	stats = train(train_dataloader,test_dataloader,model,loss_fn,optimizer,epochs=10)
 	with open("stats_1.1.pkl","wb") as f:
 		pickle.dump(stats,f)
