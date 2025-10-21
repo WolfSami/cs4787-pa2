@@ -102,13 +102,14 @@ def make_fully_connected_model_part1_1():
 # returns   a new model of type torch.nn.Sequential
 def make_fully_connected_model_part1_4():
 	# TODO students should implement this
-
+	return
 # build a convolutional neural network, as in Part 3.1
 # use the default initialization for the parameters provided in PyTorch
 #
 # returns   a new model of type torch.nn.Sequential
 def make_cnn_model_part3_1():
 	# TODO students should implement this
+	return
 
 # train a neural network on MNIST data
 #     be sure to call model.train() before training and model.eval() before evaluating!
@@ -165,10 +166,22 @@ def train(train_dataloader, test_dataloader, model, loss_fn, optimizer, epochs, 
 			test_acc.append(my_acc)
 	return (train_loss,train_acc,test_loss,test_acc,approx_tr_loss,approx_tr_acc)
 
-
-
+""" Run your function to this network with a cross entropy loss (hint: you will find the torch.nn.CrossEntropyLoss loss from PyTorch to be useful here) using stochastic gradient descent (SGD). Use the following hyperparameter settings and instructions:
+Learning rate α=0.1 . Minibatch size B=100
+Run for 10 epochs.
+Your code should save the statistics that are output by train in addition to the total wall-clock time used for training. 
+You should expect to get about 98% test accuracy here. """
+def run_1_1(train_dataset,test_dataset):
+	loss_fn = torch.nn.CrossEntropyLoss
+	model = make_fully_connected_model_part1_1()
+	optimizer = torch.optim.SGD(model.parameters(),lr=0.1,batch_size=100)
+	train_dataloader,test_dataloader = construct_dataloaders(train_dataset,test_dataset)
+	stats = train(train_dataloader,test_dataloader,model,loss_fn,optimizer,epochs=10)
+	with open("stats_1.1.pkl","wb") as f:
+		pickle.dump(stats,f)
+	print("test accuracy: " + str(stats[3][-1]))
 
 
 if __name__ == "__main__":
 	(train_dataset, test_dataset) = load_MNIST_dataset()
-	# TODO students should add code to generate plots here
+	run_1_1(train_dataset,test_dataset)
