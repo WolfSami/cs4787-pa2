@@ -55,7 +55,7 @@ def load_MNIST_dataset():
 #     use a batch size of 100 and no shuffling for the test data loader
 def construct_dataloaders(train_dataset, test_dataset, batch_size, shuffle_train=True):
 	train_dataloader = torch.utils.data.DataLoader(dataset=train_dataset,batch_size=batch_size,shuffle=shuffle_train)
-	test_dataloader = torch.utils.data.DataLoader(dataset=test_dataset,batch_size=batch_size,shuffle=shuffle_train)
+	test_dataloader = torch.utils.data.DataLoader(dataset=test_dataset,batch_size=100,shuffle=shuffle_train)
 	return(train_dataloader,test_dataloader)
 
 
@@ -68,7 +68,18 @@ def construct_dataloaders(train_dataset, test_dataset, batch_size, shuffle_train
 # returns       tuple of (loss, accuracy), both python floats
 @torch.no_grad()
 def evaluate_model(dataloader, model, loss_fn):
-	# TODO students should implement this
+	loss = 0
+	num_correct = 0.0
+	num_total = 0.0
+	for (X,y) in dataloader:
+		output = model(X)
+		loss += loss_fn(output,y)
+		for i in range(len(output)):
+			num_total += 1
+			if (output[i].argmax() == y[i]):
+				num_correct += 1
+	return(loss,num_correct/num_total)
+
 
 # build a fully connected two-hidden-layer neural network for MNIST data, as in Part 1.1
 # use the default initialization for the parameters provided in PyTorch
@@ -111,7 +122,31 @@ def make_cnn_model_part3_1():
 #   approx_tr_loss   an array of length `epochs` containing the average training loss of examples processed in this epoch
 #   approx_tr_acc    an array of length `epochs` containing the average training accuracy of examples processed in this epoch
 def train(train_dataloader, test_dataloader, model, loss_fn, optimizer, epochs, eval_train_stats=True, eval_test_stats=True):
-	# TODO students should implement this
+	train_loss = []
+	train_acc = []
+	test_loss = []
+	test_acc = []
+	approx_tr_loss = []
+	approx_tr_acc = []
+	for e in range(epochs):
+		model.train()
+		epoch_loss = 0
+		epoch_num_correct = 0.0
+		epoch_num_total = 0.0
+		for (X,y) in train_dataloader:
+			output = model(X)
+			loss = loss_fn(output,y)
+			optimizer.zero_grad()
+			loss.backward()
+			optimizer.step()
+		if (eval_train_stats):
+			model.eval()
+			evaluate_model(train_dataloader,model,loss_fn)
+		if (eval_test_stats):
+			model.eval()
+			evaluate_model(test_dataloader,model,loss_fn)
+
+
 
 
 
