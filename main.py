@@ -8,7 +8,7 @@ import pickle
 matplotlib.use('agg')
 from matplotlib import pyplot
 import time
-
+import math
 import torch
 import torchvision
 ## you may wish to import other things like torch.nn
@@ -63,7 +63,7 @@ def load_MNIST_dataset():
 #     use a batch size of 100 and no shuffling for the test data loader
 def construct_dataloaders(train_dataset, test_dataset, batch_size, shuffle_train=True):
 	train_dataloader = torch.utils.data.DataLoader(dataset=train_dataset,batch_size=batch_size,shuffle=shuffle_train)
-	test_dataloader = torch.utils.data.DataLoader(dataset=test_dataset,batch_size=100,shuffle=shuffle_train)
+	test_dataloader = torch.utils.data.DataLoader(dataset=test_dataset,batch_size=100,shuffle=False)
 	return(train_dataloader,test_dataloader)
 
 # evaluate a trained model on MNIST data
@@ -125,7 +125,7 @@ def make_fully_connected_model_part1_4():
 	)
 	return model
 
-def make_fully_connected_model_custom_part2_2(hidden_dim=1024, num_hidden_layers=2):
+def make_fully_connected_model_custom_part2_2(hidden_dim=512, num_hidden_layers=2):
 	layers = [torch.nn.Flatten()]
 	in_dim = 28 * 28
 	for _ in range(num_hidden_layers):
@@ -156,7 +156,7 @@ def make_cnn_model_part3_1():
 		torch.nn.ReLU(),
 		torch.nn.MaxPool2d((2,2)),
 		torch.nn.Flatten(),
-		torch.nn.Linear(196,128),
+		torch.nn.Linear(512,128),
 		torch.nn.ReLU(),
 		torch.nn.Linear(128,10)
 	)
@@ -292,17 +292,100 @@ def run_momentum_sgd_grid_search(train_dataset, test_dataset):
 		optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
 		train_dataloader, test_dataloader = construct_dataloaders(train_dataset, test_dataset, 100)
 		start_time = _sync_and_retrieve_time()
-		stats = train(train_dataloader, test_dataloader, model, loss_fn, optimizer, epochs=10)
+		stats = train(train_dataloader, test_dataloader, model, loss_fn, optimizer, epochs=10,eval_test_stats=False,eval_train_stats=False)
 		wall_time = _sync_and_retrieve_time() - start_time
+		test_loss,test_accuracy = evaluate_model(test_dataloader,model,loss_fn)
 		with open(f"stats_grid_momentum_sgd_lr_{lr}.pkl", "wb") as f:
 			pickle.dump(stats, f)
-		test_accuracy = stats[3][-1] if stats[3] else None
 		print("test accuracy: " + str(test_accuracy))
 		print(f"training wall time: {wall_time}s")
 		if test_accuracy is not None and test_accuracy > best_acc:
 			best_acc = test_accuracy
 			best_lr = lr
 	print(f"Best momentum SGD step size: {best_lr} (test accuracy {best_acc})")
+
+
+
+def run_momentum_sgd_hyperparameter_grid(train_dataset, test_dataset):
+	loss_fn = torch.nn.CrossEntropyLoss()
+	hidden_dims = [256, 512, 1024]
+	num_hidden_layers_options = [1, 2, 3]
+	momentum_options = [0.7, 0.8, 0.9, 0.99]
+	results = []
+	best_acc = float("-inf")
+	best_config = None
+
+	for hidden_dim in hidden_dims:
+		for num_hidden_layers in num_hidden_layers_options:
+			for momentum in momentum_options:
+				print(f"Config: width={hidden_dim}, layers={num_hidden_layers}, momentum={momentum}")
+				model = make_fully_connected_model_custom_part2_2(hidden_dim=hidden_dim, num_hidden_layers=num_hidden_layers)
+				optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=momentum)
+				train_dataloader, test_dataloader = construct_dataloaders(train_dataset, test_dataset, 100)
+				start_time = _sync_and_retrieve_time()
+				stats = train(train_dataloader, test_dataloader, model, loss_fn, optimizer, epochs=10,eval_test_stats=False,eval_train_stats=False)
+				wall_time = _sync_and_retrieve_time() - start_time
+				test_loss,test_acc = evaluate_model(test_dataloader,model,loss_fn)
+				config_result = {
+					"hidden_dim": hidden_dim,
+					"num_hidden_layers": num_hidden_layers,
+					"momentum": momentum,
+					"test_loss": test_loss,
+					"test_acc": test_acc,
+					"wall_time": wall_time,
+				}
+				results.append(config_result)
+				filename = f"stats_grid_momentum_sgd_width_{hidden_dim}_layers_{num_hidden_layers}_momentum_{momentum}.pkl"
+				with open(filename, "wb") as f:
+					pickle.dump(stats, f)
+				print(f"  test_acc={test_acc}, test_loss={test_loss}, wall_time={wall_time}s")
+				if test_acc is not None and test_acc > best_acc:
+					best_acc = test_acc
+					best_config = config_result
+	print(best_config)
+	return results, best_config
+
+
+def run_random_momentum_sgd_hyperparameter(train_dataset, test_dataset):
+	loss_fn = torch.nn.CrossEntropyLoss()
+	hidden_dims = (1024 - 256) * torch.rand(10) + 256
+	num_hidden_layers_options = (3 - 1) * torch.rand(10) + 1
+	momentum_options = 0.99 - torch.clamp(torch.abs(torch.normal(0,0.15,size=10)),0,0.29)
+	results = []
+	best_acc = float("-inf")
+	best_config = None
+
+
+	for i in range(10):
+		hidden_dim = int(hidden_dims[i])
+		num_hidden_layers = int(num_hidden_layers_options[i])
+		momentum = momentum_options[i]			
+		print(f"Config: width={hidden_dim}, layers={num_hidden_layers}, momentum={momentum}")
+		model = make_fully_connected_model_custom_part2_2(hidden_dim=hidden_dim, num_hidden_layers=num_hidden_layers)
+		optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=momentum)
+		train_dataloader, test_dataloader = construct_dataloaders(train_dataset, test_dataset, 100)
+		start_time = _sync_and_retrieve_time()
+		stats = train(train_dataloader, test_dataloader, model, loss_fn, optimizer, epochs=10,eval_test_stats=False,eval_train_stats=False)
+		wall_time = _sync_and_retrieve_time() - start_time
+		test_loss,test_acc = evaluate_model(test_dataloader,model,loss_fn)
+		config_result = {
+			"hidden_dim": hidden_dim,
+			"num_hidden_layers": num_hidden_layers,
+			"momentum": momentum,
+			"test_loss": test_loss,
+			"test_acc": test_acc,
+			"wall_time": wall_time,
+		}
+		results.append(config_result)
+		filename = f"stats_random_momentum_sgd_width_{hidden_dim}_layers_{num_hidden_layers}_momentum_{momentum}.pkl"
+		with open(filename, "wb") as f:
+			pickle.dump(stats, f)
+		print(f"  test_acc={test_acc}, test_loss={test_loss}, wall_time={wall_time}s")
+		if test_acc is not None and test_acc > best_acc:
+			best_acc = test_acc
+			best_config = config_result
+	print(best_config)
+	return results, best_config
 
 def run_3_1(train_dataset,test_dataset):
 	loss_fn = torch.nn.CrossEntropyLoss()
@@ -315,7 +398,7 @@ def run_3_1(train_dataset,test_dataset):
 	with open("stats_3_1.pkl","wb") as f:
 		pickle.dump(stats,f)
 	print("test accuracy: " + str(stats[3][-1]))
-	print(f"training wall time: {wall_time}s")
+	print(f"training wall time: {wall_time}s")				
 
 
 def plot_graphs():
@@ -363,4 +446,8 @@ if __name__ == "__main__":
 	run_1_2(train_dataset,test_dataset)
 	run_1_3(train_dataset,test_dataset)
 	run_1_4(train_dataset,test_dataset)
+
+	run_momentum_sgd_grid_search(train_dataset,test_dataset)
+	run_momentum_sgd_hyperparameter_grid(train_dataset,test_dataset)
+	run_random_momentum_sgd_hyperparameter(train_dataset,test_dataset)
 	plot_graphs()
