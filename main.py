@@ -118,8 +118,27 @@ def make_fully_connected_model_part1_4():
 #
 # returns   a new model of type torch.nn.Sequential
 def make_cnn_model_part3_1():
-	# TODO students should implement this
-	return
+	model = torch.nn.Sequential(
+		torch.nn.Conv2d(1,16,(3,3),1,0),
+		torch.nn.BatchNorm2d(16),
+		torch.nn.ReLU(),
+		torch.nn.Conv2d(16,16,(3,3),1,0),
+		torch.nn.BatchNorm2d(16),
+		torch.nn.ReLU(),
+		torch.nn.MaxPool2d((2,2)),
+		torch.nn.Conv2d(16,32,(3,3),1,0),
+		torch.nn.BatchNorm2d(32),
+		torch.nn.ReLU(),
+		torch.nn.Conv2d(32,32,(3,3),1,0),
+		torch.nn.BatchNorm2d(32),
+		torch.nn.ReLU(),
+		torch.nn.MaxPool2d((2,2)),
+		torch.nn.Flatten(),
+		torch.nn.Linear(196,128),
+		torch.nn.ReLU(),
+		torch.nn.Linear(128,10)
+	)
+	return model 
 
 # train a neural network on MNIST data
 #     be sure to call model.train() before training and model.eval() before evaluating!
