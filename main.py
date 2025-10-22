@@ -125,7 +125,7 @@ def make_fully_connected_model_part1_4():
 	)
 	return model
 
-def make_fully_connected_model_custom_part2_2(hidden_dim=1024, num_hidden_layers=2):
+def make_fully_connected_model_custom_part2_2(hidden_dim=512, num_hidden_layers=2):
 	layers = [torch.nn.Flatten()]
 	in_dim = 28 * 28
 	for _ in range(num_hidden_layers):
@@ -303,6 +303,48 @@ def run_momentum_sgd_grid_search(train_dataset, test_dataset):
 			best_acc = test_accuracy
 			best_lr = lr
 	print(f"Best momentum SGD step size: {best_lr} (test accuracy {best_acc})")
+
+def run_momentum_sgd_hyperparameter_grid(train_dataset, test_dataset):
+	loss_fn = torch.nn.CrossEntropyLoss()
+	hidden_dims = [256, 512, 1024]
+	num_hidden_layers_options = [1, 2, 3]
+	momentum_options = [0.7, 0.8, 0.9, 0.99]
+	train_dataloader, test_dataloader = construct_dataloaders(train_dataset, test_dataset, 100)
+	results = []
+	best_config = None
+
+	for hidden_dim in hidden_dims:
+		for num_hidden_layers in num_hidden_layers_options:
+			for momentum in momentum_options:
+				print(f"Config: width={hidden_dim}, layers={num_hidden_layers}, momentum={momentum}")
+				model = make_fully_connected_model_custom_part2_2(hidden_dim=hidden_dim, num_hidden_layers=num_hidden_layers)
+				optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=momentum)
+				start_time = _sync_and_retrieve_time()
+				stats = train(train_dataloader, test_dataloader, model, loss_fn, optimizer, epochs=10, eval_train_stats=False, eval_test_stats=True)
+				wall_time = _sync_and_retrieve_time() - start_time
+
+				val_loss = stats[2][-1] if stats[2] else None
+				val_acc = stats[3][-1] if stats[3] else None
+
+				model.eval()
+				test_loss, test_acc = evaluate_model(test_dataloader, model, loss_fn)
+
+				config_result = {
+					"hidden_dim": hidden_dim,
+					"num_hidden_layers": num_hidden_layers,
+					"momentum": momentum,
+					"val_loss": val_loss,
+					"val_acc": val_acc,
+					"test_loss": test_loss,
+					"test_acc": test_acc,
+					"wall_time": wall_time,
+				}
+				results.append(config_result)
+				print(f"  val_acc={val_acc}, val_loss={val_loss}, test_acc={test_acc}, test_loss={test_loss}, wall_time={wall_time}s")
+				if val_acc is not None and (best_config is None or val_acc > best_config["val_acc"]):
+					best_config = config_result
+	print(best_config)
+	return results, best_config
 
 def plot_graphs():
 	model_runs = {
