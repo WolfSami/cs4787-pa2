@@ -281,6 +281,29 @@ def run_1_4(train_dataset,test_dataset):
 	print("test accuracy: " + str(stats[3][-1]))
 	print(f"training wall time: {wall_time}s")
 
+def run_momentum_sgd_grid_search(train_dataset, test_dataset):
+	loss_fn = torch.nn.CrossEntropyLoss()
+	step_sizes = [1.0, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001]
+	best_lr = None
+	best_acc = float("-inf")
+	for lr in step_sizes:
+		print(f"Running momentum SGD with lr={lr}")
+		model = make_fully_connected_model_part1_1()
+		optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+		train_dataloader, test_dataloader = construct_dataloaders(train_dataset, test_dataset, 100)
+		start_time = _sync_and_retrieve_time()
+		stats = train(train_dataloader, test_dataloader, model, loss_fn, optimizer, epochs=10)
+		wall_time = _sync_and_retrieve_time() - start_time
+		with open(f"stats_grid_momentum_sgd_lr_{lr}.pkl", "wb") as f:
+			pickle.dump(stats, f)
+		test_accuracy = stats[3][-1] if stats[3] else None
+		print("test accuracy: " + str(test_accuracy))
+		print(f"training wall time: {wall_time}s")
+		if test_accuracy is not None and test_accuracy > best_acc:
+			best_acc = test_accuracy
+			best_lr = lr
+	print(f"Best momentum SGD step size: {best_lr} (test accuracy {best_acc})")
+
 def plot_graphs():
 	model_runs = {
 		"1.1": "stats_1.1.pkl",
@@ -319,29 +342,6 @@ def plot_graphs():
 		pyplot.legend()
 		pyplot.savefig(f"figures/accuracy_curves_{name}.png")
 		pyplot.close(fig_acc)
-
-def run_momentum_sgd_grid_search(train_dataset, test_dataset):
-	loss_fn = torch.nn.CrossEntropyLoss()
-	step_sizes = [1.0, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001]
-	best_lr = None
-	best_acc = float("-inf")
-	for lr in step_sizes:
-		print(f"Running momentum SGD with lr={lr}")
-		model = make_fully_connected_model_part1_1()
-		optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
-		train_dataloader, test_dataloader = construct_dataloaders(train_dataset, test_dataset, 100)
-		start_time = _sync_and_retrieve_time()
-		stats = train(train_dataloader, test_dataloader, model, loss_fn, optimizer, epochs=10)
-		wall_time = _sync_and_retrieve_time() - start_time
-		with open(f"stats_grid_momentum_sgd_lr_{lr}.pkl", "wb") as f:
-			pickle.dump(stats, f)
-		test_accuracy = stats[3][-1] if stats[3] else None
-		print("test accuracy: " + str(test_accuracy))
-		print(f"training wall time: {wall_time}s")
-		if test_accuracy is not None and test_accuracy > best_acc:
-			best_acc = test_accuracy
-			best_lr = lr
-	print(f"Best momentum SGD step size: {best_lr} (test accuracy {best_acc})")
 
 if __name__ == "__main__":
 	(train_dataset, test_dataset) = load_MNIST_dataset()
