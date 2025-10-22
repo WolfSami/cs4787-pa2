@@ -232,16 +232,63 @@ def run_1_3(train_dataset,test_dataset):
 
 def run_1_4(train_dataset,test_dataset):
 	loss_fn = torch.nn.CrossEntropyLoss()
-	model = make_fully_connected_model_part1_1()
-	optimizer = torch.optim.RMSProp(model.parameters(), lr=0.001, alpha=0.9)
+	model = make_fully_connected_model_part1_4()
+	optimizer = torch.optim.RMSprop(model.parameters(), lr=0.001, alpha=0.9)
 	train_dataloader,test_dataloader = construct_dataloaders(train_dataset,test_dataset,100)
 	stats = train(train_dataloader,test_dataloader,model,loss_fn,optimizer,epochs=10)
 	with open("stats_1.4.pkl","wb") as f:
 		pickle.dump(stats,f)
 	print("test accuracy: " + str(stats[3][-1]))
 
+def plot_graphs():
+	model_runs = {
+		"1.1": "stats_1.1.pkl",
+		"1.2": "stats_1.2.pkl",
+		"1.3": "stats_1.3.pkl",
+		"1.4": "stats_1.4.pkl",
+	}
+
+	os.makedirs("figures", exist_ok=True)
+
+	for name, filename in model_runs.items():
+		if not os.path.exists(filename):
+			print(f"Missing file {filename}, skipping plots for run {name}.")
+			continue
+		with open(filename, "rb") as f:
+			stats = pickle.load(f)
+		if len(stats) != 6:
+			print(f"Unexpected stats format in {filename}, skipping.")
+			continue
+		train_loss, train_acc, test_loss, test_acc, approx_tr_loss, approx_tr_acc = stats
+		epochs_range = list(range(1, len(approx_tr_loss) + 1))
+
+		fig_loss = pyplot.figure()
+		pyplot.plot(epochs_range, approx_tr_loss, label="Approx train loss")
+		pyplot.plot(epochs_range, train_loss, label="Train loss")
+		pyplot.plot(epochs_range, test_loss, label="Test loss")
+		pyplot.xlabel("Epoch")
+		pyplot.ylabel("Loss")
+		pyplot.title(f"Loss Curves Run {name}")
+		pyplot.legend()
+		pyplot.savefig(f"figures/loss_curves_{name}.png")
+		pyplot.close(fig_loss)
+
+		fig_acc = pyplot.figure()
+		pyplot.plot(epochs_range, approx_tr_acc, label="Approx train acc")
+		pyplot.plot(epochs_range, train_acc, label="Train acc")
+		pyplot.plot(epochs_range, test_acc, label="Test acc")
+		pyplot.xlabel("Epoch")
+		pyplot.ylabel("Accuracy")
+		pyplot.title(f"Accuracy Curves Run {name}")
+		pyplot.legend()
+		pyplot.savefig(f"figures/accuracy_curves_{name}.png")
+		pyplot.close(fig_acc)
+
 
 if __name__ == "__main__":
 	(train_dataset, test_dataset) = load_MNIST_dataset()
-	run_1_2(train_dataset,test_dataset)
-	run_1_3(train_dataset,test_dataset)
+	# run_1_1(train_dataset,test_dataset)
+	# run_1_2(train_dataset,test_dataset)
+	# run_1_3(train_dataset,test_dataset)
+	# run_1_4(train_dataset,test_dataset)
+	plot_graphs()
