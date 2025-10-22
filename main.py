@@ -101,8 +101,18 @@ def make_fully_connected_model_part1_1():
 #
 # returns   a new model of type torch.nn.Sequential
 def make_fully_connected_model_part1_4():
-	# TODO students should implement this
-	return
+	model = torch.nn.Sequential(
+		torch.nn.Flatten(),
+		torch.nn.Linear(in_features=784, out_features=1024),
+		torch.nn.BatchNorm1d(num_features=1024),
+		torch.nn.ReLU(),
+		torch.nn.Linear(in_features=1024, out_features=256),
+		torch.nn.BatchNorm1d(num_features=256),
+		torch.nn.ReLU(),
+		torch.nn.Linear(in_features=256, out_features=10),
+		torch.nn.BatchNorm1d(num_features=10)
+	)
+	return model
 # build a convolutional neural network, as in Part 3.1
 # use the default initialization for the parameters provided in PyTorch
 #
@@ -174,14 +184,45 @@ You should expect to get about 98% test accuracy here. """
 def run_1_1(train_dataset,test_dataset):
 	loss_fn = torch.nn.CrossEntropyLoss()
 	model = make_fully_connected_model_part1_1()
-	optimizer = torch.optim.SGD(model.parameters(),lr=0.1)
+	optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 	train_dataloader,test_dataloader = construct_dataloaders(train_dataset,test_dataset,100)
 	stats = train(train_dataloader,test_dataloader,model,loss_fn,optimizer,epochs=10)
 	with open("stats_1.1.pkl","wb") as f:
 		pickle.dump(stats,f)
 	print("test accuracy: " + str(stats[3][-1]))
 
+def run_1_2(train_dataset,test_dataset):
+	loss_fn = torch.nn.CrossEntropyLoss()
+	model = make_fully_connected_model_part1_1()
+	optimizer = torch.optim.RMSprop(model.parameters(), lr=0.1, alpha=0.9)
+	train_dataloader,test_dataloader = construct_dataloaders(train_dataset,test_dataset,100)
+	stats = train(train_dataloader,test_dataloader,model,loss_fn,optimizer,epochs=10)
+	with open("stats_1.2.pkl","wb") as f:
+		pickle.dump(stats,f)
+	print("test accuracy: " + str(stats[3][-1]))
+
+def run_1_3(train_dataset,test_dataset):
+	loss_fn = torch.nn.CrossEntropyLoss()
+	model = make_fully_connected_model_part1_1()
+	optimizer = torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.99,0.999))
+	train_dataloader,test_dataloader = construct_dataloaders(train_dataset,test_dataset,100)
+	stats = train(train_dataloader,test_dataloader,model,loss_fn,optimizer,epochs=10)
+	with open("stats_1.3.pkl","wb") as f:
+		pickle.dump(stats,f)
+	print("test accuracy: " + str(stats[3][-1]))
+
+def run_1_4(train_dataset,test_dataset):
+	loss_fn = torch.nn.CrossEntropyLoss()
+	model = make_fully_connected_model_part1_1()
+	optimizer = torch.optim.RMSProp(model.parameters(), lr=0.001, alpha=0.9)
+	train_dataloader,test_dataloader = construct_dataloaders(train_dataset,test_dataset,100)
+	stats = train(train_dataloader,test_dataloader,model,loss_fn,optimizer,epochs=10)
+	with open("stats_1.4.pkl","wb") as f:
+		pickle.dump(stats,f)
+	print("test accuracy: " + str(stats[3][-1]))
+
 
 if __name__ == "__main__":
 	(train_dataset, test_dataset) = load_MNIST_dataset()
-	run_1_1(train_dataset,test_dataset)
+	run_1_2(train_dataset,test_dataset)
+	run_1_3(train_dataset,test_dataset)
