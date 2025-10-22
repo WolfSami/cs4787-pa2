@@ -73,7 +73,7 @@ def construct_dataloaders(train_dataset, test_dataset, batch_size, shuffle_train
 # loss_fn       loss function (e.g. torch.nn.CrossEntropyLoss)
 #
 # returns       tuple of (loss, accuracy), both python floats
-@torch.no_grad()
+"""@torch.no_grad()
 def evaluate_model(dataloader, model, loss_fn):
 	loss = 0
 	num_correct = 0.0
@@ -84,12 +84,28 @@ def evaluate_model(dataloader, model, loss_fn):
 		X = X.to(DEVICE)
 		y = y.to(DEVICE)
 		output = model(X)
-		loss += loss_fn(output,y).item()
+		loss += loss_fn(output,y).item() * batch_size
 		for i in range(len(output)):
 			num_total += 1
 			if (output[i].argmax() == y[i]):
 				num_correct += 1
-	return(loss,num_correct/num_total)
+	return(loss / num_total,num_correct/num_total)"""
+@torch.no_grad()
+def evaluate_model(dataloader, model, loss_fn):
+    model = model.to(DEVICE)
+    model.eval()
+    loss_sum, correct, total = 0.0, 0, 0
+    for X, y in dataloader:
+        X = X.to(DEVICE)
+        y = y.to(DEVICE)
+        out = model(X)
+        bs = y.size(0)
+        # loss_fn usually returns mean; scale by batch size to accumulate a sum
+        loss_sum += loss_fn(out, y).item() * bs
+        correct  += (out.argmax(dim=1) == y).sum().item()
+        total    += bs
+    return loss_sum / total, correct / total
+
 
 
 # build a fully connected two-hidden-layer neural network for MNIST data, as in Part 1.1
@@ -350,7 +366,7 @@ def run_random_momentum_sgd_hyperparameter(train_dataset, test_dataset):
 	loss_fn = torch.nn.CrossEntropyLoss()
 	hidden_dims = (1024 - 256) * torch.rand(10) + 256
 	num_hidden_layers_options = (3 - 1) * torch.rand(10) + 1
-	momentum_options = 0.99 - torch.clamp(torch.abs(torch.normal(0,0.15,size=10)),0,0.29)
+	momentum_options = (0.99 - 0.7) * torch.rand(10) + 0.7
 	results = []
 	best_acc = float("-inf")
 	best_config = None
@@ -442,12 +458,12 @@ def plot_graphs():
 
 if __name__ == "__main__":
 	(train_dataset, test_dataset) = load_MNIST_dataset()
-	run_1_1(train_dataset,test_dataset)
-	run_1_2(train_dataset,test_dataset)
-	run_1_3(train_dataset,test_dataset)
-	run_1_4(train_dataset,test_dataset)
+	#run_1_1(train_dataset,test_dataset)
+	#run_1_2(train_dataset,test_dataset)
+	#run_1_3(train_dataset,test_dataset)
+	#run_1_4(train_dataset,test_dataset)
 
 	run_momentum_sgd_grid_search(train_dataset,test_dataset)
 	run_momentum_sgd_hyperparameter_grid(train_dataset,test_dataset)
 	run_random_momentum_sgd_hyperparameter(train_dataset,test_dataset)
-	plot_graphs()
+	#plot_graphs()
