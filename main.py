@@ -7,10 +7,18 @@ import matplotlib
 import pickle
 matplotlib.use('agg')
 from matplotlib import pyplot
+import time
 
 import torch
 import torchvision
 ## you may wish to import other things like torch.nn
+
+DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
+def _sync_and_retrieve_time():
+	if DEVICE.type == "cuda":
+		torch.cuda.synchronize()
+	return time.time()
 
 ### hyperparameter settings and other constants
 batch_size = 100
@@ -58,7 +66,6 @@ def construct_dataloaders(train_dataset, test_dataset, batch_size, shuffle_train
 	test_dataloader = torch.utils.data.DataLoader(dataset=test_dataset,batch_size=100,shuffle=shuffle_train)
 	return(train_dataloader,test_dataloader)
 
-
 # evaluate a trained model on MNIST data
 #
 # dataloader    dataloader of examples to evaluate on
@@ -71,7 +78,11 @@ def evaluate_model(dataloader, model, loss_fn):
 	loss = 0
 	num_correct = 0.0
 	num_total = 0.0
+	model = model.to(DEVICE)
+	loss_fn = loss_fn.to(DEVICE)
 	for (X,y) in dataloader:
+		X = X.to(DEVICE)
+		y = y.to(DEVICE)
 		output = model(X)
 		loss += loss_fn(output,y).item()
 		for i in range(len(output)):
@@ -113,6 +124,17 @@ def make_fully_connected_model_part1_4():
 		torch.nn.BatchNorm1d(num_features=10)
 	)
 	return model
+
+def make_fully_connected_model_custom_part2_2(hidden_dim=1024, num_hidden_layers=2):
+	layers = [torch.nn.Flatten()]
+	in_dim = 28 * 28
+	for _ in range(num_hidden_layers):
+		layers.append(torch.nn.Linear(in_features=in_dim, out_features=hidden_dim))
+		layers.append(torch.nn.ReLU())
+		in_dim = hidden_dim
+	layers.append(torch.nn.Linear(in_features=in_dim, out_features=10))
+	return torch.nn.Sequential(*layers)
+
 # build a convolutional neural network, as in Part 3.1
 # use the default initialization for the parameters provided in PyTorch
 #
@@ -166,12 +188,18 @@ def train(train_dataloader, test_dataloader, model, loss_fn, optimizer, epochs, 
 	test_acc = []
 	approx_tr_loss = []
 	approx_tr_acc = []
+	epoch_times = []
+	model = model.to(DEVICE)
+	loss_fn = loss_fn.to(DEVICE)
 	for e in range(epochs):
+		epoch_start = _sync_and_retrieve_time()
 		model.train()
 		epoch_loss = 0
 		epoch_num_correct = 0.0
 		epoch_num_total = 0.0
 		for (X,y) in train_dataloader:
+			X = X.to(DEVICE)
+			y = y.to(DEVICE)
 			output = model(X)
 			loss = loss_fn(output,y)
 			epoch_loss += loss.item()
@@ -193,7 +221,8 @@ def train(train_dataloader, test_dataloader, model, loss_fn, optimizer, epochs, 
 			my_loss,my_acc = evaluate_model(test_dataloader,model,loss_fn)
 			test_loss.append(my_loss)
 			test_acc.append(my_acc)
-	return (train_loss,train_acc,test_loss,test_acc,approx_tr_loss,approx_tr_acc)
+		epoch_times.append(_sync_and_retrieve_time() - epoch_start)
+	return (train_loss,train_acc,test_loss,test_acc,approx_tr_loss,approx_tr_acc,epoch_times)
 
 """ Run your function to this network with a cross entropy loss (hint: you will find the torch.nn.CrossEntropyLoss loss from PyTorch to be useful here) using stochastic gradient descent (SGD). Use the following hyperparameter settings and instructions:
 Learning rate α=0.1 . Minibatch size B=100
@@ -205,40 +234,75 @@ def run_1_1(train_dataset,test_dataset):
 	model = make_fully_connected_model_part1_1()
 	optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 	train_dataloader,test_dataloader = construct_dataloaders(train_dataset,test_dataset,100)
+	start_time = _sync_and_retrieve_time()
 	stats = train(train_dataloader,test_dataloader,model,loss_fn,optimizer,epochs=10)
+	wall_time = _sync_and_retrieve_time() - start_time
 	with open("stats_1.1.pkl","wb") as f:
 		pickle.dump(stats,f)
 	print("test accuracy: " + str(stats[3][-1]))
+	print(f"training wall time: {wall_time}s")
 
 def run_1_2(train_dataset,test_dataset):
 	loss_fn = torch.nn.CrossEntropyLoss()
 	model = make_fully_connected_model_part1_1()
-	optimizer = torch.optim.RMSprop(model.parameters(), lr=0.1, alpha=0.9)
+	optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
 	train_dataloader,test_dataloader = construct_dataloaders(train_dataset,test_dataset,100)
+	start_time = _sync_and_retrieve_time()
 	stats = train(train_dataloader,test_dataloader,model,loss_fn,optimizer,epochs=10)
+	wall_time = _sync_and_retrieve_time() - start_time
 	with open("stats_1.2.pkl","wb") as f:
 		pickle.dump(stats,f)
 	print("test accuracy: " + str(stats[3][-1]))
+	print(f"training wall time: {wall_time}s")
 
 def run_1_3(train_dataset,test_dataset):
 	loss_fn = torch.nn.CrossEntropyLoss()
 	model = make_fully_connected_model_part1_1()
 	optimizer = torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.99,0.999))
 	train_dataloader,test_dataloader = construct_dataloaders(train_dataset,test_dataset,100)
+	start_time = _sync_and_retrieve_time()
 	stats = train(train_dataloader,test_dataloader,model,loss_fn,optimizer,epochs=10)
+	wall_time = _sync_and_retrieve_time() - start_time
 	with open("stats_1.3.pkl","wb") as f:
 		pickle.dump(stats,f)
 	print("test accuracy: " + str(stats[3][-1]))
+	print(f"training wall time: {wall_time}s")
 
 def run_1_4(train_dataset,test_dataset):
 	loss_fn = torch.nn.CrossEntropyLoss()
 	model = make_fully_connected_model_part1_4()
-	optimizer = torch.optim.RMSprop(model.parameters(), lr=0.001, alpha=0.9)
+	optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
 	train_dataloader,test_dataloader = construct_dataloaders(train_dataset,test_dataset,100)
+	start_time = _sync_and_retrieve_time()
 	stats = train(train_dataloader,test_dataloader,model,loss_fn,optimizer,epochs=10)
+	wall_time = _sync_and_retrieve_time() - start_time
 	with open("stats_1.4.pkl","wb") as f:
 		pickle.dump(stats,f)
 	print("test accuracy: " + str(stats[3][-1]))
+	print(f"training wall time: {wall_time}s")
+
+def run_momentum_sgd_grid_search(train_dataset, test_dataset):
+	loss_fn = torch.nn.CrossEntropyLoss()
+	step_sizes = [1.0, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001]
+	best_lr = None
+	best_acc = float("-inf")
+	for lr in step_sizes:
+		print(f"Running momentum SGD with lr={lr}")
+		model = make_fully_connected_model_part1_1()
+		optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+		train_dataloader, test_dataloader = construct_dataloaders(train_dataset, test_dataset, 100)
+		start_time = _sync_and_retrieve_time()
+		stats = train(train_dataloader, test_dataloader, model, loss_fn, optimizer, epochs=10)
+		wall_time = _sync_and_retrieve_time() - start_time
+		with open(f"stats_grid_momentum_sgd_lr_{lr}.pkl", "wb") as f:
+			pickle.dump(stats, f)
+		test_accuracy = stats[3][-1] if stats[3] else None
+		print("test accuracy: " + str(test_accuracy))
+		print(f"training wall time: {wall_time}s")
+		if test_accuracy is not None and test_accuracy > best_acc:
+			best_acc = test_accuracy
+			best_lr = lr
+	print(f"Best momentum SGD step size: {best_lr} (test accuracy {best_acc})")
 
 def run_3_1(train_dataset,test_dataset):
 	loss_fn = torch.nn.CrossEntropyLoss()
@@ -262,14 +326,9 @@ def plot_graphs():
 	os.makedirs("figures", exist_ok=True)
 
 	for name, filename in model_runs.items():
-		if not os.path.exists(filename):
-			print(f"Missing file {filename}, skipping plots for run {name}.")
-			continue
 		with open(filename, "rb") as f:
 			stats = pickle.load(f)
-		if len(stats) != 6:
-			print(f"Unexpected stats format in {filename}, skipping.")
-			continue
+		assert len(stats) == 6
 		train_loss, train_acc, test_loss, test_acc, approx_tr_loss, approx_tr_acc = stats
 		epochs_range = list(range(1, len(approx_tr_loss) + 1))
 
@@ -295,11 +354,10 @@ def plot_graphs():
 		pyplot.savefig(f"figures/accuracy_curves_{name}.png")
 		pyplot.close(fig_acc)
 
-
 if __name__ == "__main__":
 	(train_dataset, test_dataset) = load_MNIST_dataset()
-	# run_1_1(train_dataset,test_dataset)
-	# run_1_2(train_dataset,test_dataset)
-	# run_1_3(train_dataset,test_dataset)
-	# run_1_4(train_dataset,test_dataset)
+	run_1_1(train_dataset,test_dataset)
+	run_1_2(train_dataset,test_dataset)
+	run_1_3(train_dataset,test_dataset)
+	run_1_4(train_dataset,test_dataset)
 	plot_graphs()
