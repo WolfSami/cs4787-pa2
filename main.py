@@ -240,6 +240,17 @@ def run_1_4(train_dataset,test_dataset):
 		pickle.dump(stats,f)
 	print("test accuracy: " + str(stats[3][-1]))
 
+def run_3_1(train_dataset,test_dataset):
+	loss_fn = torch.nn.CrossEntropyLoss()
+	model = make_cnn_model_part3_1()
+	optimizer = torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.9,0.999))
+	train_dataloader,test_dataloader = construct_dataloaders(train_dataset,test_dataset,100)
+	stats = train(train_dataloader,test_dataloader,model,loss_fn,optimizer,epochs=10)
+	with open("stats_3_1.pkl","wb") as f:
+		pickle.dump(stats,f)
+	print("test accuracy: " + str(stats[3][-1]))
+
+
 def plot_graphs():
 	model_runs = {
 		"1.1": "stats_1.1.pkl",
