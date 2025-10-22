@@ -398,8 +398,7 @@ def run_3_1(train_dataset,test_dataset):
 	with open("stats_3_1.pkl","wb") as f:
 		pickle.dump(stats,f)
 	print("test accuracy: " + str(stats[3][-1]))
-	print(f"training wall time: {wall_time}s")				
-
+	print(f"training wall time: {wall_time}s")
 
 def plot_graphs():
 	model_runs = {
@@ -440,14 +439,50 @@ def plot_graphs():
 		pyplot.savefig(f"figures/accuracy_curves_{name}.png")
 		pyplot.close(fig_acc)
 
+def plot_run_3_1_figures():
+	with open("stats_3_1.pkl", "rb") as f:
+		stats = pickle.load(f)
+	if len(stats) < 6:
+		raise ValueError("Expected at least six elements in stats for run 3.1.")
+	train_loss, train_acc, test_loss, test_acc, approx_tr_loss, approx_tr_acc = stats[:6]
+	epochs_train = list(range(1, len(approx_tr_loss) + 1))
+	epochs_test = list(range(1, len(test_loss) + 1)) if test_loss else []
+	epochs_test_acc = list(range(1, len(test_acc) + 1)) if test_acc else []
+
+	os.makedirs("figures", exist_ok=True)
+
+	fig_loss = pyplot.figure()
+	pyplot.plot(epochs_train, approx_tr_loss, label="Train loss (minibatch-derived)")
+	if test_loss:
+		pyplot.plot(epochs_test, test_loss, label="Test loss")
+	pyplot.xlabel("Epoch")
+	pyplot.ylabel("Loss")
+	pyplot.title("Run 3.1 Loss vs Epoch")
+	pyplot.legend()
+	pyplot.savefig("figures/run_3_1_loss.png")
+	pyplot.close(fig_loss)
+
+	fig_acc = pyplot.figure()
+	pyplot.plot(epochs_train, approx_tr_acc, label="Train accuracy (minibatch-derived)")
+	if test_acc:
+		pyplot.plot(epochs_test_acc, test_acc, label="Test accuracy")
+	pyplot.xlabel("Epoch")
+	pyplot.ylabel("Accuracy")
+	pyplot.title("Run 3.1 Accuracy vs Epoch")
+	pyplot.legend()
+	pyplot.savefig("figures/run_3_1_accuracy.png")
+	pyplot.close(fig_acc)
+
 if __name__ == "__main__":
 	(train_dataset, test_dataset) = load_MNIST_dataset()
-	run_1_1(train_dataset,test_dataset)
-	run_1_2(train_dataset,test_dataset)
-	run_1_3(train_dataset,test_dataset)
-	run_1_4(train_dataset,test_dataset)
+	# run_1_1(train_dataset,test_dataset)
+	# run_1_2(train_dataset,test_dataset)
+	# run_1_3(train_dataset,test_dataset)
+	# run_1_4(train_dataset,test_dataset)
 
-	run_momentum_sgd_grid_search(train_dataset,test_dataset)
-	run_momentum_sgd_hyperparameter_grid(train_dataset,test_dataset)
-	run_random_momentum_sgd_hyperparameter(train_dataset,test_dataset)
-	plot_graphs()
+	# run_momentum_sgd_grid_search(train_dataset,test_dataset)
+	# run_momentum_sgd_hyperparameter_grid(train_dataset,test_dataset)
+	# run_random_momentum_sgd_hyperparameter(train_dataset,test_dataset)
+	# plot_graphs()
+	run_3_1(train_dataset,test_dataset)
+	plot_run_3_1_figures()
