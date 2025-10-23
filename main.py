@@ -513,6 +513,7 @@ if __name__ == "__main__":
 	#run_momentum_sgd_hyperparameter_grid(train_dataset,test_dataset)
 	#run_random_momentum_sgd_hyperparameter(train_dataset,test_dataset)
 	#plot_graphs()
+	run_3_1(train_dataset,test_dataset)
 	with open("stats_3_1.pkl","rb") as f:
 		stats = pickle.load(f)
 		print("test loss for 3.1 CNN: " + str(stats[3][-1]))
