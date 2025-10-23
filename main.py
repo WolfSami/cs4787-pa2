@@ -442,8 +442,8 @@ def plot_graphs():
 	for name, filename in model_runs.items():
 		with open(filename, "rb") as f:
 			stats = pickle.load(f)
-		assert len(stats) == 6
-		train_loss, train_acc, test_loss, test_acc, approx_tr_loss, approx_tr_acc = stats
+		assert len(stats) == 7
+		train_loss, train_acc, test_loss, test_acc, approx_tr_loss, approx_tr_acc, _ = stats
 		epochs_range = list(range(1, len(approx_tr_loss) + 1))
 
 		fig_loss = pyplot.figure()
@@ -471,8 +471,7 @@ def plot_graphs():
 def plot_run_3_1_figures():
 	with open("stats_3_1.pkl", "rb") as f:
 		stats = pickle.load(f)
-	if len(stats) < 6:
-		raise ValueError("Expected at least six elements in stats for run 3.1.")
+	assert len(stats) == 7
 	train_loss, train_acc, test_loss, test_acc, approx_tr_loss, approx_tr_acc = stats[:6]
 	epochs_train = list(range(1, len(approx_tr_loss) + 1))
 	epochs_test = list(range(1, len(test_loss) + 1)) if test_loss else []
