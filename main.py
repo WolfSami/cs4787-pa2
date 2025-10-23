@@ -252,7 +252,7 @@ def run_1_1(train_dataset,test_dataset):
 	optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 	train_dataloader,test_dataloader = construct_dataloaders(train_dataset,test_dataset,100)
 	start_time = _sync_and_retrieve_time()
-	stats = train(train_dataloader,test_dataloader,model,loss_fn,optimizer,epochs=1)
+	stats = train(train_dataloader,test_dataloader,model,loss_fn,optimizer,epochs=10)
 	wall_time = _sync_and_retrieve_time() - start_time
 	with open("stats_1.1.pkl","wb") as f:
 		pickle.dump(stats,f)
