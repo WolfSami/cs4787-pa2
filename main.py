@@ -416,6 +416,19 @@ def run_3_1(train_dataset,test_dataset):
 	print("test accuracy: " + str(stats[3][-1]))
 	print(f"training wall time: {wall_time}s")
 
+def run_3_6(train_dataset,test_dataset):
+	loss_fn = torch.nn.CrossEntropyLoss()
+	model = make_cnn_model_part3_1()
+	optimizer = torch.optim.Adam(model.parameters(), lr=0.002, betas=(0.9,0.999))
+	train_dataloader,test_dataloader = construct_dataloaders(train_dataset,test_dataset,100)
+	start_time = _sync_and_retrieve_time()
+	stats = train(train_dataloader,test_dataloader,model,loss_fn,optimizer,epochs=10)
+	wall_time = _sync_and_retrieve_time() - start_time
+	with open("stats_3_6.pkl","wb") as f:
+		pickle.dump(stats,f)
+	print("test accuracy: " + str(stats[3][-1]))
+	print(f"training wall time: {wall_time}s")
+
 def plot_graphs():
 	model_runs = {
 		"1.1": "stats_1.1.pkl",
@@ -496,7 +509,15 @@ if __name__ == "__main__":
 	#run_1_3(train_dataset,test_dataset)
 	#run_1_4(train_dataset,test_dataset)
 
-	run_momentum_sgd_grid_search(train_dataset,test_dataset)
-	run_momentum_sgd_hyperparameter_grid(train_dataset,test_dataset)
-	run_random_momentum_sgd_hyperparameter(train_dataset,test_dataset)
+	#run_momentum_sgd_grid_search(train_dataset,test_dataset)
+	#run_momentum_sgd_hyperparameter_grid(train_dataset,test_dataset)
+	#run_random_momentum_sgd_hyperparameter(train_dataset,test_dataset)
 	#plot_graphs()
+	with open("stats_3_1.pkl","rb") as f:
+		stats = pickle.load(f)
+		print("test loss for 3.1 CNN: " + str(stats[3][-1]))
+	run_3_6(train_dataset,test_dataset)
+	with open("stats_3_6.pkl","rb") as f:
+		stats = pickle.load(f)
+		print("test loss for 3.6 CNN: " + str(stats[3][-1]))
+	
