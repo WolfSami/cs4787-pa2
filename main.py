@@ -210,7 +210,7 @@ def train(train_dataloader, test_dataloader, model, loss_fn, optimizer, epochs, 
 	for e in range(epochs):
 		epoch_start = _sync_and_retrieve_time()
 		model.train()
-		epoch_loss = 0
+		epoch_loss = 0.0
 		epoch_num_correct = 0.0
 		epoch_num_total = 0.0
 		for (X,y) in train_dataloader:
