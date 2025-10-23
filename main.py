@@ -217,14 +217,15 @@ def train(train_dataloader, test_dataloader, model, loss_fn, optimizer, epochs, 
 			X = X.to(DEVICE)
 			y = y.to(DEVICE)
 			output = model(X)
-			loss = loss_fn(output,y)
+			bs = y.size(0)
+			loss = loss_fn(output,y) * bs
 			epoch_loss += loss.item()
 			epoch_num_correct += (y == output.argmax(dim=1)).sum().item() 
 			epoch_num_total += y.shape[0]
 			optimizer.zero_grad()
 			loss.backward()
 			optimizer.step()
-		approx_tr_loss.append(epoch_loss)
+		approx_tr_loss.append(epoch_loss/epoch_num_total)
 		approx_tr_acc.append(epoch_num_correct/epoch_num_total)
 
 		if (eval_train_stats):
